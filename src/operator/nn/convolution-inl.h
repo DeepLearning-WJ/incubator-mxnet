@@ -56,11 +56,6 @@ enum ConvolutionOpOutputs {kOut};
 enum ConvolutionOpResource {kTempSpace};
 enum ConvolutionOpCudnnTune {kOff, kLimited, kFastest};
 }
-/*
-struct map
-kernal
-cpu gpu
-*/
 // 保存卷积操作所用到的参数，在Forward和Backward借口调用之前传给Operator
 struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
   TShape kernel;
