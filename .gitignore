@@ -177,3 +177,5 @@ cxx
 *.gcno
 coverage.xml
 
+.cache/
+.ccls-cache/
