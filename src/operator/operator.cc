@@ -33,6 +33,7 @@ DMLC_REGISTRY_ENABLE(::mxnet::OperatorPropertyReg);
 namespace mxnet {
 // implementation of all factory functions
 OperatorProperty *OperatorProperty::Create(const char* type_name) {
+  // 即在已经注册的层次中寻找type_name，如果寻找到就会返回一个OperatorProperty
   auto *creator = dmlc::Registry<OperatorPropertyReg>::Find(type_name);
   if (creator == nullptr) {
     LOG(FATAL) << "Cannot find Operator " << type_name << " in registry";

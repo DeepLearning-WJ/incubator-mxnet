@@ -193,7 +193,7 @@ class MXNET_API Engine {
    * \param exec_ctx Execution context.
    * \param const_vars The variables that current operation will use but not
    *                   mutate.
-   * \param mutable_vars The variables that current operation will mutate.
+   * \param mutable_vars The variables that current operation will mutate. 当前操作将改变的变量
    * \param prop Property of the function.
    * \param priority Priority of the action, as hint to the engine.
    * \param opr_name The operator name.
@@ -233,7 +233,7 @@ class MXNET_API Engine {
   /*!\brief virtual destructor */
   virtual ~Engine() noexcept(false) {}
   /*!
-   * \return Engine singleton.
+   * \return Engine singleton. 单例模式 一个类只能创建一个对象
    */
   static Engine* Get();
   /*!
@@ -270,7 +270,7 @@ class MXNET_API Engine {
   }
 
   /*!
-   * \brief factory function to create OnComplete callback.
+   * \brief factory function to create OnComplete callback. 工厂模式
    * \param callback th static callback function.
    * \param param the paramter passed to callback.
    */

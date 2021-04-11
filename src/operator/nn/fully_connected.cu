@@ -39,6 +39,7 @@ void FullyConnectedCompute<gpu>(const nnvm::NodeAttrs& attrs,
   int dtype = inputs[0].type_flag_;
 
   MSHADOW_REAL_TYPE_SWITCH(dtype, DType, {
+      //! 前向传播
     FCForward<gpu, DType>(ctx, param, inputs, req, outputs);
   });
 }
@@ -60,6 +61,7 @@ void FullyConnectedGradCompute<gpu>(const nnvm::NodeAttrs& attrs,
   int dtype = inputs[0].type_flag_;
 
   MSHADOW_REAL_TYPE_SWITCH(dtype, DType, {
+    //! 反向传播
     FCBackward<gpu, DType>(ctx, param, out_grad, in_data, req, outputs);
   });
 }

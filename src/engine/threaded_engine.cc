@@ -289,7 +289,7 @@ void ThreadedEngine::Push(OprHandle op, Context exec_ctx, int priority, bool pro
   BulkFlush();
 
   ThreadedOpr* threaded_opr = ThreadedOpr::CastFromBase(op);
-  OprBlock* opr_block = OprBlock::New();
+  OprBlock* opr_block = OprBlock::New();// 分配和取消分配的帮助类
   opr_block->opr = threaded_opr;
 
   opr_block->wait.store(static_cast<int>(
@@ -298,7 +298,7 @@ void ThreadedEngine::Push(OprHandle op, Context exec_ctx, int priority, bool pro
   opr_block->ctx = exec_ctx;
   opr_block->priority = priority;
   opr_block->profiling = profiling;
-  ++pending_;
+  ++pending_;// Number of pending operations
   // Add read dependencies.
   for (auto&& i : threaded_opr->const_vars) {
     i->AppendReadDependency(opr_block);
@@ -307,8 +307,8 @@ void ThreadedEngine::Push(OprHandle op, Context exec_ctx, int priority, bool pro
   for (auto&& i : threaded_opr->mutable_vars) {
     i->AppendWriteDependency(opr_block);
   }
-  if (opr_block->decr_wait() == 0) {
-    this->PushToExecute(opr_block, true);
+  if (opr_block->decr_wait() == 0) {// wait counter == 0
+    this->PushToExecute(opr_block, true);//push opr_block 进执行队列
   }
 }
 

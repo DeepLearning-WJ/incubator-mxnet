@@ -115,6 +115,7 @@ def _set_symbol_class(cls):
     _symbol_cls = cls
 
 
+# 创建Symbol第一站
 def _symbol_creator(handle, args, kwargs, keys, vals, name):
     sym_handle = SymbolHandle()
     check_call(_LIB.MXSymbolCreateAtomicSymbol(

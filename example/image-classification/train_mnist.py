@@ -27,6 +27,17 @@ from common.util import download_file
 import mxnet as mx
 import numpy as np
 import gzip, struct
+from mxnet import profiler
+
+# 防止生成的json文件过大
+profiler.set_config(profile_all=False,
+                    profile_symbolic=True,
+                    profile_imperative=True,
+                    profile_memory=False,
+                    profile_api=False,
+                    aggregate_stats=True,
+                    continuous_dump=True,
+                    filename='profile_output.json')
 
 def read_data(label, image):
     """
@@ -77,21 +88,40 @@ if __name__ == '__main__':
     fit.add_fit_args(parser)
     parser.set_defaults(
         # network
-        network        = 'mlp',
+        network        = 'lenet',
+        # network        = 'mlp',
         # train
-        gpus           = None,
-        batch_size     = 64,
-        disp_batches   = 100,
-        num_epochs     = 20,
+        gpus           = '0',# 是否使用GPU, '0', '0, 1'
+        batch_size     = 100,
+        disp_batches   = 1,# 每隔100个显示一下
+        num_epochs     = 1,
         lr             = .05,
         lr_step_epochs = '10'
     )
     args = parser.parse_args()
+    print(args)
 
     # load network
     from importlib import import_module
+    # 得到symbols文件夹下的网络
     net = import_module('symbols.'+args.network)
     sym = net.get_symbol(**vars(args))
+    # 打印网络结构, 重点关注参数量
+    # mx.viz.plot_network(sym).view()
+    print(mx.viz.print_summary(sym, shape={"data":(1,1,28,28)}))
+
+    # Ask the profiler to start recording
+    profiler.set_state('run')
 
     # train
     fit.fit(args, sym, get_mnist_iter)
+
+
+    # Make sure all operations have completed
+    mx.nd.waitall()
+    # Ask the profiler to stop recording
+    profiler.set_state('stop')
+    # Dump all results to log file before download
+    profiler.dump(finished=False)# 浏览器查看
+    # 在终端打印
+    print(profiler.dumps())

@@ -39,7 +39,7 @@ struct Opr {
   virtual ~Opr() = default;
 #endif
   /*!
-   * \brief cast variable to derived type T
+   * \brief cast variable to derived type T 将变量转换为派生类型T
    * \tparam T the type we want to cast into.
    * \return A casted variable.
    */

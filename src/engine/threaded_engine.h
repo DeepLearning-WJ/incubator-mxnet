@@ -328,8 +328,8 @@ class ThreadedEngine : public Engine {
    */
   virtual void PushToExecute(OprBlock* opr_block, bool pusher_thread) = 0;
   /*!
-   * \brief Call this function to actually execute an opr_block
-   *  This function also deletes the opr_block after execution.
+   * \brief Call this function to actually execute an opr_block 执行 opr_block
+   *  This function also deletes the opr_block after execution. 后删除 opr_block
    * \param run_ctx runtime context used to execute the function.
    * \param opr_block the opr_block to be executed and deleted.
    */

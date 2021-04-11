@@ -665,6 +665,7 @@ def _generate_op_module_signature(root_namespace, module_name, op_code_gen_func)
         """Return the generated module file based on module name."""
         path = os.path.dirname(__file__)
         module_path = module_name.split('.')
+        # 名字 gen_op.py
         module_path[-1] = 'gen_' + module_path[-1]
         file_name = os.path.join(path, '..', *module_path) + '.py'
         module_file = open(file_name, 'w')

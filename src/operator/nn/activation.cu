@@ -56,15 +56,18 @@ void ActivationCompute<gpu>(const nnvm::NodeAttrs& attrs,
   const ActivationParam& param = nnvm::get<ActivationParam>(attrs.parsed);
   const int act_type = param.act_type;
 
-  // SoftReLU and kSoftSign are both not supported by CUDNN yet
+  //! SoftReLU and kSoftSign are both not supported by CUDNN yet
   if (act_type == activation::kSoftReLU) {
+      //! 前向传播
     ActivationForward<gpu, mshadow_op::softrelu, mshadow_op::softrelu_grad>(ctx,
       inputs[0], req[0], outputs[0]);
   } else if (act_type == activation::kSoftSign) {
+      //! 前向传播
     ActivationForward<gpu, mshadow_op::softsign, mshadow_op::softsign_grad>(ctx,
       inputs[0], req[0], outputs[0]);
   } else {
     MSHADOW_REAL_TYPE_SWITCH(inputs[0].type_flag_, DType, {
+        //! GPU前向传播
       get_cudnn_op<DType>(param).Forward(ctx, inputs[0], req[0], outputs[0]);
     });
   }
@@ -84,19 +87,23 @@ void ActivationGradCompute<gpu>(const nnvm::NodeAttrs& attrs,
 
   // both SoftReLU and SoftSign not supported by CUDNN yet
   if (act_type == activation::kSoftReLU) {
-    ActivationBackward<gpu, mshadow_op::softrelu, mshadow_op::softrelu_grad>(
+      //! 反向传播
+      ActivationBackward<gpu, mshadow_op::softrelu, mshadow_op::softrelu_grad>(
       ctx, inputs.at(0), inputs.at(1), req[0], outputs[0]);
   } else if (act_type == activation::kSoftSign) {
+      //! 反向传播
     ActivationBackward<gpu, mshadow_op::softsign, mshadow_op::softsign_grad>(
       ctx, inputs.at(0), inputs.at(2), req[0], outputs[0]);
   } else if (act_type == activation::kReLU) {
     MSHADOW_REAL_TYPE_SWITCH(inputs.at(0).type_flag_, DType, {
       // XXX: for y = relu(x), y is passed as "in_data" to Backward()
+        //! GPU反向传播
       get_cudnn_op<DType>(param).Backward(ctx, inputs.at(0), inputs.at(1),
                                           inputs.at(1), req[0], outputs[0]);
     });
   } else {
     MSHADOW_REAL_TYPE_SWITCH(inputs.at(0).type_flag_, DType, {
+        //! GPU反向传播
       get_cudnn_op<DType>(param).Backward(ctx, inputs.at(0), inputs.at(2),
                                           inputs.at(1), req[0], outputs[0]);
     });

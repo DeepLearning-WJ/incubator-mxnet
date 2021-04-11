@@ -100,7 +100,7 @@ typedef void (*SourceFunction)(const EnvArguments& env,
 typedef TShape (*SourceShapeFunction)(const EnvArguments& env);
 
 /*!
- * \brief Unary function that takes a src and save result to ret.
+ * \brief Unary(单元) function that takes a src and save result to ret.
  *  The result container is pre-allocated with the correct shape.
  * \param src The source data.
  * \param env The Environment arguments.
@@ -232,7 +232,7 @@ typedef void (*BinaryGradFunctionT1)(const OutputGrad& out_grad,
                                      OpReqType req_rhs_grad,
                                      RunContext ctx);
 
-/*! \brief options in the registry to set inplace of operator */
+/*! \brief options in the registry to set inplace(适当的) of operator */
 enum SimpleOpInplaceOption {
   /*! \brief do not allow inplace in arguments */
   kNoInplace,
@@ -434,7 +434,7 @@ class SimpleOpRegistry {
   inline static const SimpleOpRegEntry *Find(const std::string &name) {
     return Get()->fmap_.at(name);
   }
-  /*! \return global singleton of the registry */
+  /*! \return global singleton(单例模式) of the registry */
   static SimpleOpRegistry* Get();
 
  private:
@@ -470,7 +470,7 @@ class SimpleOpRegistry {
   }
 
 /*!
-* \brief Maximum ndim supported for special operators like broadcasting with non contiguous lhs/rhs
+* \brief Maximum ndim supported for special operators like broadcasting with non contiguous(邻近的) lhs/rhs
 */
 #define MXNET_SPECIAL_MAX_NDIM 5
 

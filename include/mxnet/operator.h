@@ -67,6 +67,7 @@ class Operator {
    *        need, epecial case like Batch Norm requires.
    * \sa OpReqType, OpContext
    */
+   // 核心运算符接口
   virtual void Forward(const OpContext &ctx,
                        const std::vector<TBlob> &in_data,
                        const std::vector<OpReqType> &req,
@@ -76,7 +77,7 @@ class Operator {
    * \brief Perform a Backward Operation, write gradient to the in_grad.
    *
    * \note
-   * Convention:
+   * Convention: 规定
    *   out_grad.size() == OperatorProperty.NumVisibleOutputs()
    *   out_data.size() == OperatorProperty.NumOutputs()
    * out_data can contain additional invisible returns that remembers the
@@ -87,7 +88,7 @@ class Operator {
    * Not all the TBlobs in the arguments will be available
    * if you override the DeclareBackwardDependency of corresponding OperatorProperty class.
    * Only the dependencies you declared will be available at corresponding position,
-   * the rest of the parameters are simply dummy where you will get a nullptr.
+   * the rest of the parameters are simply dummy(假的) where you will get a nullptr.
    * You will be safe if you use the default DeclareBackwardDependency.
    * But only declare what you need will give engine more chance for optimization.
    *
@@ -198,7 +199,9 @@ class OperatorProperty {
    * \return true if the shape inference is successful, false if there is not enough information.
    * \throws dmlc::Error if the known arg_shapes are inconsistent.
    */
-  virtual bool InferShape(std::vector<TShape> *in_shape,
+  //告诉系统每个输入张量和输出张量的形状，以便在调用 Forward 和 Backward 之前分配空间
+  //在执行之前做检查，保证没有明显的错误
+    virtual bool InferShape(std::vector<TShape> *in_shape,
                           std::vector<TShape> *out_shape,
                           std::vector<TShape> *aux_shape) const = 0;
   /*!
@@ -267,6 +270,7 @@ class OperatorProperty {
     CHECK(InferShape(in_shape, &out_shape, &aux_shape));
     return CreateOperator(ctx);
   }
+
   /*!
    * \brief return the type string of the Operator
    *  subclasses override this function.
@@ -283,6 +287,8 @@ class OperatorProperty {
    * \param in_shape The input shape to the operator, corresponds to shapes of in_data.
    * \return Additional resource request
    */
+  // 像 cudnnConvolutionForward 之类的运算符在计算时需要一个工作区（workspace）
+  // 如果系统能够管理工作区，就可以对它进行优化，比如重用空间等
   virtual std::vector<ResourceRequest> ForwardResource(
       const std::vector<TShape> &in_shape) const {
     return std::vector<ResourceRequest>();
@@ -320,6 +326,7 @@ class OperatorProperty {
    * \return an integer vector indicating the input requirments
    * \sa BackwardInputs
    */
+   // 指定Backward中的参数依赖
   virtual std::vector<int> DeclareBackwardDependency(
       const std::vector<int> &out_grad,
       const std::vector<int> &in_data,
@@ -332,7 +339,7 @@ class OperatorProperty {
     return ret;
   }
   /*!
-   * \brief Get possible forward inplace options.
+   * \brief Get possible forward inplace(适当的) options.
    *  This function enables optimization to reuse memory of inputs in output.
    *  Only override when necessary, by default in-place is disabled.
    *
@@ -500,6 +507,7 @@ struct OperatorPropertyReg
  *
  * \endcode
  */
+// 用于注册名字，注册接口，add_argument是为了方便使用者得到该操作的操作参数
 #define MXNET_REGISTER_OP_PROPERTY(name, OperatorPropertyType)          \
   DMLC_REGISTRY_REGISTER(::mxnet::OperatorPropertyReg, OperatorPropertyReg, name) \
   .set_body([]() { return new OperatorPropertyType(); })                \

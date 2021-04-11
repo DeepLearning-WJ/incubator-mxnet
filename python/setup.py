@@ -50,6 +50,7 @@ __version__ = libinfo['__version__']
 sys.path.insert(0, CURRENT_DIR)
 
 # Try to generate auto-complete code
+# 生成gen_op.py等文件
 try:
     from mxnet.base import _generate_op_module_signature
     from mxnet.ndarray.register import _generate_ndarray_function_code

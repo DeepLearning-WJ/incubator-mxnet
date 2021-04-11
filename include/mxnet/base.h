@@ -145,7 +145,7 @@ struct Context {
   /*! \brief default constructor */
   Context() : dev_type(kCPU), dev_id(0) {}
   /*!
-   * \brief Get corresponding device mask
+   * \brief Get corresponding device mask 获取相应设备掩码
    * \return cpu::kDevMask or gpu::kDevMask
    */
   inline DeviceType dev_mask() const {

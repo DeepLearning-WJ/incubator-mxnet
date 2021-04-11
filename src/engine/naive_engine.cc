@@ -110,9 +110,9 @@ class NaiveEngine final : public Engine {
 
   void Push(OprHandle op, Context exec_ctx, int priority = 0, bool profiling = false) override {
     profiler::Profiler *profiler = profiler::Profiler::Get();
-    NaiveOpr *opr = op->Cast<NaiveOpr>();
+    NaiveOpr *opr = op->Cast<NaiveOpr>();//Cast 将变量op转换为派生类型T
     opr->profiling = profiling && profiler->IsProfiling(profiler::Profiler::kSymbolic);
-    this->PushAsync([&](RunContext ctx, CallbackOnComplete on_complete) {
+    this->PushAsync([&](RunContext ctx, CallbackOnComplete on_complete) {//lambada表达式
         if (opr->profiling) {
           std::unique_ptr<profiler::ProfileOperator::Attributes> attrs;
           if (profiler->AggregateEnabled()) {
@@ -144,7 +144,7 @@ class NaiveEngine final : public Engine {
                  bool wait = false) override {
     CallbackOnComplete callback = CreateCallback(
         NaiveEngine::OnComplete, nullptr);
-    this->req_completed_ = false;
+    this->req_completed_ = false;// whether the action is completed
     profiler::Profiler *profiler = profiler::Profiler::Get();
     NaiveOpr *opr = nullptr;
     const bool profiling = opr_name && profiler->IsProfiling(profiler::Profiler::kImperative);
@@ -153,7 +153,7 @@ class NaiveEngine final : public Engine {
                         prop, opr_name)->Cast<NaiveOpr>();
       opr->profiling = profiling;
       std::unique_ptr<profiler::ProfileOperator::Attributes> attrs;
-      if (profiler->AggregateEnabled()) {
+      if (profiler->AggregateEnabled()) {//Whether aggregate stats are being collected
         attrs.reset(new profiler::ProfileOperator::Attributes());
       }
       opr->opr_profile.reset(new profiler::ProfileOperator(opr->opr_name, attrs.release()));
@@ -163,7 +163,7 @@ class NaiveEngine final : public Engine {
     for (auto var : mutable_vars) {
       ++var->version_;
     }
-    if (exec_ctx.dev_mask() == gpu::kDevMask) {
+    if (exec_ctx.dev_mask() == gpu::kDevMask) {// 判断是否使用cuda
 #if MXNET_USE_CUDA
       size_t dev_id = static_cast<size_t>(exec_ctx.dev_id);
       MSHADOW_CATCH_ERROR(mshadow::SetDevice<gpu>(exec_ctx.dev_id));
@@ -180,7 +180,7 @@ class NaiveEngine final : public Engine {
     } else {
       exec_fun(RunContext{exec_ctx, &cpu_stream_}, callback);
     }
-    CHECK(this->req_completed_)
+    CHECK(this->req_completed_)//req_completed什么时候修改的
         << "NaiveEngine only support synchronize Push so far";
     if (profiling) {
       opr->opr_profile->stop();

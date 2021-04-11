@@ -21,7 +21,7 @@
  *  Copyright (c) 2014 by Contributors
  * \file tensor_blob.h
  * \brief TBlob class that holds common representation of
- *  arbirary dimension tensor, can be used to transformed
+ *  arbirary(任意的) dimension tensor, can be used to transformed
  *  to normal fixed dimenson tensor
  * \author Tianqi Chen
  */
@@ -52,7 +52,7 @@ constexpr const int kTVMNDArrayTypeCode = 19;
 class NDArray;
 
 /*!
- * \brief tensor blob class that can be used to hold tensor of any dimension,
+ * \brief tensor blob(张量斑点) class that can be used to hold tensor of any dimension,
  *  any device and any data type,
  *  This is a weak type that can be used to transfer data through interface
  *  TBlob itself do not involve any arithmentic operations,

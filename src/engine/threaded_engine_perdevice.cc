@@ -96,20 +96,20 @@ class ThreadedEnginePerDevice : public ThreadedEngine {
          opr_block->opr->prop == FnProperty::kDeleteVar) && pusher_thread) {
       if (ctx.dev_mask() == Context::kGPU) {
         #if MXNET_USE_CUDA
-        MSHADOW_CATCH_ERROR(mshadow::SetDevice<gpu>(ctx.dev_id));
+        MSHADOW_CATCH_ERROR(mshadow::SetDevice<gpu>(ctx.dev_id));// Run function and catch error, log unknown error
         #endif
       }
       this->ExecuteOprBlock(RunContext{ctx, nullptr}, opr_block);
     } else {
       if (ctx.dev_mask() == Context::kCPU) {
         // CPU execution.
-        if (opr_block->opr->prop == FnProperty::kCPUPrioritized) {
+        if (opr_block->opr->prop == FnProperty::kCPUPrioritized) {// CPU 优先
           cpu_priority_worker_->task_queue.Push(opr_block, opr_block->priority);
         } else {
           int dev_id = ctx.dev_id;
           int nthread = cpu_worker_nthreads_;
           auto ptr =
-          cpu_normal_workers_.Get(dev_id, [this, ctx, nthread]() {
+          cpu_normal_workers_.Get(dev_id, [this, ctx, nthread]() {//Get element of corresponding index,
               auto blk = new ThreadWorkerBlock<kWorkerQueue>();
               blk->pool.reset(new ThreadPool(nthread,
                   [this, ctx, blk](std::shared_ptr<dmlc::ManualEvent> ready_event) {
@@ -117,9 +117,9 @@ class ThreadedEnginePerDevice : public ThreadedEngine {
                   }, true));
             return blk;
           });
-          if (ptr) {
+          if (ptr) {//ptr在哪里初始化的？
             if (opr_block->opr->prop == FnProperty::kDeleteVar) {
-              ptr->task_queue.PushFront(opr_block, opr_block->priority);
+              ptr->task_queue.PushFront(opr_block, opr_block->priority);//这是什么用法？
             } else {
               ptr->task_queue.Push(opr_block, opr_block->priority);
             }
@@ -135,6 +135,7 @@ class ThreadedEnginePerDevice : public ThreadedEngine {
           const size_t nthread = gpu_copy_nthreads_;
           auto ptr = gpu_copy_workers_.Get(ctx.dev_id, [this, ctx, is_copy, nthread]() {
             // Signify to kernel that GPU is being used, so reserve cores as necessary
+            // 表示GPU正在被使用，因此需要保留内核
             OpenMP::Get()->set_reserve_cores(GetReserveCoreCount(true));
             auto blk = new ThreadWorkerBlock<kCopyQueue>();
               blk->pool.reset(new ThreadPool(

@@ -42,12 +42,13 @@ namespace op {
 
 // Declare enumeration of input order to make code more intuitive.
 // These enums are only visible within this header
+// 输入顺序
 namespace fullc {
 enum FullyConnectedOpInputs {kData, kWeight, kBias};
 enum FullyConnectedOpResource {kTempSpace};
 enum FullyConnectedOpOutputs {kOut};
 }  // fullc
-
+// 继承dmlc::Parameter (dmlc-core:Distributed Machine Learning Common Codebase)
 struct FullyConnectedParam : public dmlc::Parameter<FullyConnectedParam> {
   int num_hidden;
   bool no_bias;
@@ -68,6 +69,7 @@ struct FullyConnectedParam : public dmlc::Parameter<FullyConnectedParam> {
   }
 };
 
+// 前向传播 ctx 定义在什么设备上跑
 template<typename xpu, typename DType>
 void FCForward(const OpContext &ctx, const FullyConnectedParam &param,
                const std::vector<TBlob> &in_data, const std::vector<OpReqType> &req,
@@ -86,7 +88,12 @@ void FCForward(const OpContext &ctx, const FullyConnectedParam &param,
 #endif  // __CUDACC__
   const TShape& ishape = in_data[fullc::kData].shape_;
   const TShape& oshape = out_data[fullc::kOut].shape_;
-
+  /*
+   * 把 TBlob 类型的输入数据转换成 mshadow::Tensor 类型，其目的是方便使用 mshadow 进行计算.
+   * Tensor 并没有存储具体的数据，只是保存了指向数据的指针，因此，这个转换和具体的计算相比，其代价
+   * 可以忽略不计. mshadow 是一个实现了 lazy compute 的 Tensor 计算库，在 MXNet 中，熟练
+   * 掌握 shadow 能给实现 Operator 带来巨大的便利
+   */
   Tensor<xpu, 2, DType> wmat = in_data[fullc::kWeight].get<xpu, 2, DType>(s);
   Tensor<xpu, 2, DType> data, out;
   if (!param.flatten) {
@@ -115,6 +122,7 @@ void FCForward(const OpContext &ctx, const FullyConnectedParam &param,
       << "Incomplete bias tensor detected: bias.data().shape[1] != weight.data().shape[0]."
          " This is not supported by FCForward. If bias is in row_sparse format, please"
          " make sure all row ids are present.";
+    // 最后的结果
     out += repmat(bias, data.size(0));
   }
 }
@@ -131,6 +139,7 @@ void FCBackward(const OpContext &ctx, const FullyConnectedParam &param,
   const TShape& ishape = in_data[fullc::kData].shape_;
   const TShape& oshape = out_grad[fullc::kOut].shape_;
 
+  // TShape 转 Tensor
   Tensor<xpu, 2, DType> wmat = in_data[fullc::kWeight].get<xpu, 2, DType>(s);
   Tensor<xpu, 2, DType> data, grad, gdata;
   if (!param.flatten) {
@@ -183,6 +192,7 @@ void FullyConnectedCompute(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(outputs.size(), 1U);
   int dtype = inputs[0].type_flag_;
 
+  // 这里注释掉
   switch (dtype) {
   case mshadow::kFloat32:
     FCForward<xpu, float>(ctx, param, inputs, req, outputs);
@@ -215,6 +225,7 @@ void FullyConnectedGradCompute(const nnvm::NodeAttrs& attrs,
   std::vector<TBlob> in_data(inputs.begin() + 1, inputs.end());
   int dtype = inputs[0].type_flag_;
 
+  // 这里注释掉
   switch (dtype) {
   case mshadow::kFloat32:
     FCBackward<xpu, float>(ctx, param, out_grad, in_data, req, outputs);

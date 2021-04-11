@@ -113,7 +113,7 @@ void ElementwiseSumRspImpl(mshadow::Stream<cpu>* s,
 
 /*!
  * \brief Given a vector of ndarrays, generate a index vector containing
- * all the unique row indices of the ndarrays.
+ * all the unique row indices(指标) of the ndarrays.
  */
 template<typename IType>
 void GetUniqueRspRowIdx(const std::vector<NDArray>& nds,

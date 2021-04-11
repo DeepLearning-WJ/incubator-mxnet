@@ -61,6 +61,7 @@ void PoolingCompute<gpu>(const nnvm::NodeAttrs& attrs,
       switch (param.pool_type) {
         case pool_enum::kMaxPooling:
         case pool_enum::kAvgPooling:
+            //! GPU前向传播
           GetCuDNNPoolingOp<DType>(param).Forward(ctx, inputs[0], req[0], outputs[0]);
           return;
         case pool_enum::kSumPooling:
@@ -80,6 +81,7 @@ void PoolingCompute<gpu>(const nnvm::NodeAttrs& attrs,
         || pool_enum::kSumPooling == param.pool_type
         || pool_enum::kLpPooling == param.pool_type) {
       PoolingOp<gpu, DType> op;
+      //! CPU前向传播
       op.Init(param);
       op.Forward(ctx, inputs[0], req[0], outputs[0]);
     } else {
@@ -116,6 +118,7 @@ void PoolingGradCompute<gpu>(const nnvm::NodeAttrs& attrs,
       switch (param.pool_type) {
         case pool_enum::kMaxPooling:
         case pool_enum::kAvgPooling:
+            //! GPU反向传播
           GetCuDNNPoolingOp<DType>(param).Backward(ctx, inputs[ograd_idx],
                                                    inputs[in_data_idx], inputs[out_data_idx],
                                                    req[0], outputs[0]);
@@ -137,6 +140,7 @@ void PoolingGradCompute<gpu>(const nnvm::NodeAttrs& attrs,
         || pool_enum::kSumPooling == param.pool_type
         || pool_enum::kLpPooling == param.pool_type) {
       PoolingOp<gpu, DType> op;
+      //! CPU反向传播
       op.Init(param);
       op.Backward(ctx, inputs[ograd_idx], inputs[in_data_idx],
                   inputs[out_data_idx], req[0], outputs[0]);

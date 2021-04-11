@@ -23,6 +23,7 @@
  * For using as an example in the tutorial of adding operators
  * in MXNet backend.
  */
+// 一元二次式
 #ifndef MXNET_OPERATOR_CONTRIB_QUADRATIC_OP_INL_H_
 #define MXNET_OPERATOR_CONTRIB_QUADRATIC_OP_INL_H_
 
@@ -37,6 +38,10 @@
 namespace mxnet {
 namespace op {
 
+// 奇异递归模板模式（curiously recurring template pattern，CRTP）
+// 是C++模板编程时的一种惯用法（idiom）：把派生类作为基类的模板参数
+// C++语言的多态，原本是用虚函数来实现的，属于动态多态。安德烈·亚历山德雷斯库在
+// Modern C++ Design中提出了奇异递归模板模式，并称之为静态多态（static polymorphism）
 struct QuadraticParam : public dmlc::Parameter<QuadraticParam> {
   float a, b, c;
   DMLC_DECLARE_PARAMETER(QuadraticParam) {
@@ -52,17 +57,21 @@ struct QuadraticParam : public dmlc::Parameter<QuadraticParam> {
   }
 };
 
+// attrs 没有使用
 inline bool QuadraticOpShape(const nnvm::NodeAttrs& attrs,
                              std::vector<TShape>* in_attrs,
                              std::vector<TShape>* out_attrs) {
   CHECK_EQ(in_attrs->size(), 1U);
   CHECK_EQ(out_attrs->size(), 1U);
 
+  // 检查输入和输出维度是否一致
   SHAPE_ASSIGN_CHECK(*out_attrs, 0, in_attrs->at(0));
   SHAPE_ASSIGN_CHECK(*in_attrs, 0, out_attrs->at(0));
+  // mxnet中0表示维度未知
   return out_attrs->at(0).ndim() != 0U && out_attrs->at(0).Size() != 0U;
 }
 
+// 和QuadraticOpShape相同逻辑
 inline bool QuadraticOpType(const nnvm::NodeAttrs& attrs,
                             std::vector<int>* in_attrs,
                             std::vector<int>* out_attrs) {
@@ -106,6 +115,7 @@ struct quadratic_forward {
   template<typename DType>
   MSHADOW_XINLINE static void Map(int i, DType* out_data, const DType* in_data,
                                   const float a, const float b, const float c) {
+      // 一元二次运算
     KERNEL_ASSIGN(out_data[i], req, in_data[i] * (a * in_data[i] + b) + c);
   }
 };
@@ -119,22 +129,27 @@ struct quadratic_backward {
   }
 };
 
+// 实例化发生在操作员在.cc和.cu文件中注册时
 template<typename xpu>
 void QuadraticOpForward(const nnvm::NodeAttrs& attrs,
                         const OpContext& ctx,
                         const std::vector<TBlob>& inputs,
                         const std::vector<OpReqType>& req,
                         const std::vector<TBlob>& outputs) {
+// 检查vector维度
   CHECK_EQ(inputs.size(), 1U);
   CHECK_EQ(outputs.size(), 1U);
   CHECK_EQ(req.size(), 1U);
   mshadow::Stream<xpu> *s = ctx.get_stream<xpu>();
+  // input, output tensors
   const TBlob& in_data = inputs[0];
   const TBlob& out_data = outputs[0];
+  // 获得input参数
   const QuadraticParam& param = nnvm::get<QuadraticParam>(attrs.parsed);
+  // 下面是具体的operators运算
   using namespace mxnet_op;
-  MSHADOW_TYPE_SWITCH(out_data.type_flag_, DType, {
-    MXNET_ASSIGN_REQ_SWITCH(req[0], req_type, {
+  MSHADOW_TYPE_SWITCH(out_data.type_flag_, DType, {// 支持多种数据类型运算
+    MXNET_ASSIGN_REQ_SWITCH(req[0], req_type, {// 支持多种req
       Kernel<quadratic_forward<req_type>, xpu>::Launch(
           s, out_data.Size(), out_data.dptr<DType>(), in_data.dptr<DType>(),
           param.a, param.b, param.c);

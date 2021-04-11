@@ -111,6 +111,7 @@ int MXSymbolGetAtomicSymbolInfo(AtomicSymbolCreator creator,
       arg_descriptions, return_type);
 }
 
+// 创建symbol
 int MXSymbolCreateAtomicSymbol(AtomicSymbolCreator creator,
                                mx_uint num_param,
                                const char **keys,
@@ -145,6 +146,7 @@ int MXSymbolCreateAtomicSymbol(AtomicSymbolCreator creator,
   API_END_HANDLE_ERROR(delete s;);
 }
 
+// 创建变量
 int MXSymbolCreateVariable(const char *name, SymbolHandle *out) {
   return NNSymbolCreateVariable(name, out);
 }

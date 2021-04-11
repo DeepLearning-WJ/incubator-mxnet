@@ -62,7 +62,7 @@ GraphExecutor::~GraphExecutor() {
 }
 
 void GraphExecutor::Forward(bool is_train) {
-  RunOps(is_train, 0, num_forward_nodes_);
+  RunOps(is_train, 0, num_forward_nodes_); // num_forward_nodes: number of forward nodes
 }
 
 void GraphExecutor::PartialForward(bool is_train, int step, int *step_left) {
@@ -1296,14 +1296,15 @@ void GraphExecutor::ExecuteMonCallback(size_t nid) {
       nnvm::Op::GetAttr<nnvm::FListOutputNames>("FListOutputNames");
   const auto& idx = graph_.indexed_graph();
   std::vector<std::string> output_names;
-  OpNode& opnode = op_nodes_[nid];
+  OpNode& opnode = op_nodes_[nid]; // TODO op_nodes_ 具体含义？
   const auto& inode = idx[nid];
+  // graph class IndexedGraph{struct Node}pointer to the source node
   const auto& node = idx[nid].source;
-  if (flist_outputs.count(node->op())) {
-    output_names = flist_outputs[node->op()](node->attrs);
+  if (flist_outputs.count(node->op())) {// 初始化output_names
+    output_names = flist_outputs[node->op()](node->attrs); // TODO 这个什么数据结构
   } else {
     for (size_t i = 0; i < node->num_outputs(); ++i) {
-      output_names.emplace_back(std::to_string(i));
+      output_names.emplace_back(std::to_string(i)); //类似 push_back 的一个优化函数
     }
   }
   CHECK_EQ(opnode.exec->out_array.size(), output_names.size());
@@ -1316,10 +1317,13 @@ void GraphExecutor::ExecuteMonCallback(size_t nid) {
 
 void GraphExecutor::RunOps(bool is_train, size_t topo_start, size_t topo_end) {
   // Update context
-  const auto& idx = graph_.indexed_graph();
-  for (size_t nid = topo_start; nid < topo_end; ++nid) {
-    OpNode& opnode = op_nodes_[nid];
-    if (opnode.skip_exec_node) continue;
+  // 这里只是跟新状态
+  const auto& idx = graph_.indexed_graph(); //nnvm 生成计算图 get a indexed graph of current graph, if not exist, create it on demand
+  for (size_t nid = topo_start; nid < topo_end; ++nid) { // topo_start=0, topo_end=num_forward_nodes_
+    OpNode& opnode = op_nodes_[nid]; //op_nodes_= vector<OpNode>, OpNode Information about operational node，数据类型为结构体
+    // opnode 为根据nid得到的结构体，数据结构为OpNode结构体
+    if (opnode.skip_exec_node) continue; // skip the execution of this node 默认为false
+    // inode 为根据nid得到的grad_.indexed_graph()结构体，这个数据结构有点复杂
     const auto& inode = idx[nid];
     if (inode.source->is_variable()) continue;
     opnode.exec->op_ctx.is_train = is_train;
@@ -1327,13 +1331,15 @@ void GraphExecutor::RunOps(bool is_train, size_t topo_start, size_t topo_end) {
   }
 
   // Push Ops
+  // 困难在于对这几个变量的具体含义不理解，代码理解起来比较困难
   for (size_t nid = topo_start; nid < topo_end; ++nid) {
-    auto seg_op = cached_seg_opr_[nid];
+    // a cached segment operator that executes a segment
+    auto seg_op = cached_seg_opr_[nid]; // 容器结构体CachedSegOpr
     // Check segments first
-    if (monitor_callback_ == nullptr && seg_op.opr != nullptr && seg_op.topo_end <= topo_end) {
-      bool profiling = profiler::Profiler::Get()->GetState() == profiler::Profiler::kRunning;
-      Engine::Get()->Push(seg_op.opr, seg_op.ctx, 0, profiling);
-      nid = seg_op.topo_end - 1;
+    if (monitor_callback_ == nullptr && seg_op.opr != nullptr && seg_op.topo_end <= topo_end) {//这几个条件表示什么情况
+      bool profiling = profiler::Profiler::Get()->GetState() == profiler::Profiler::kRunning;// profiler是内置的时间检测
+      Engine::Get()->Push(seg_op.opr, seg_op.ctx, 0, profiling); // 将operator push 进 engine
+      nid = seg_op.topo_end - 1;// seg_op.topo_end - 1 ？
       continue;
     }
     // Normal mode
@@ -1343,17 +1349,18 @@ void GraphExecutor::RunOps(bool is_train, size_t topo_start, size_t topo_end) {
     if (op_nodes_[nid].skip_exec_node) continue;
     opnode.exec->op_ctx.is_train = is_train;
     opnode.exec->op_ctx.need_grad = need_grad_;
-    if (opnode.exec->exec_type() == ExecType::kCrossDeviceCopy) {
-      CHECK_EQ(inode.inputs.size(), 1U);
+    if (opnode.exec->exec_type() == ExecType::kCrossDeviceCopy) { // ExecType 不同的 kvstore 类型 operator.h
+      CHECK_EQ(inode.inputs.size(), 1U); // 1U uint32_t 类型
       CHECK_EQ(opnode.exec->in_array.size(), 1U);
       CHECK_EQ(opnode.exec->out_array.size(), 1U);
       CopyFromTo(opnode.exec->in_array[0], &(opnode.exec->out_array[0]));
-    } else if (opnode.exec->exec_type() == ExecType::kSubgraphExec) {
+    } else if (opnode.exec->exec_type() == ExecType::kSubgraphExec) { // ExecType 不同的 kvstore 类型
       // If the node contains a subgraph, we can't execute it in the engine.
-      opnode.exec->Run(opnode.exec->op_ctx.run_ctx, false);
+      // TODO 什么样的情况会有子计算图
+      opnode.exec->Run(opnode.exec->op_ctx.run_ctx, false); // 又是一个分支
     } else if (opnode.cached_opr != nullptr) {
-      bool profiling = profiler::Profiler::Get()->GetState() == profiler::Profiler::kRunning;
-      Engine::Get()->Push(opnode.cached_opr, opnode.ctx, 0, profiling);
+      bool profiling = profiler::Profiler::Get()->GetState() == profiler::Profiler::kRunning; // Profiler是内置时间检测
+      Engine::Get()->Push(opnode.cached_opr, opnode.ctx, 0, profiling); // 将operator push 进 engine
     } else {
       LOG(FATAL) << "Not accessed";
     }

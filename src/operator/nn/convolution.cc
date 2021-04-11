@@ -4,7 +4,7 @@
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
+ * "License";; you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
@@ -24,6 +24,7 @@
  * \author Bing Xu, Jun Wu, Da Zheng
 */
 
+// herewj inl啥意思
 #include "./convolution-inl.h"
 #include "../elemwise_op_common.h"
 #include "../operator_common.h"
@@ -37,12 +38,15 @@
 
 namespace mxnet {
 namespace op {
+// 使用宏在mxnet中注册操作，ConvolutionParam来自./convolution-inl.h
 DMLC_REGISTER_PARAMETER(ConvolutionParam);
 
+// Padding
 static inline index_t AddPad(index_t dsize, index_t pad) {
   return dsize + 2 * pad;
 }
 
+// 返回参数
 static inline std::vector<std::string> ListArguments(const ConvolutionParam& param_) {
   if (!param_.no_bias) {
     return {"data", "weight", "bias"};
@@ -51,6 +55,7 @@ static inline std::vector<std::string> ListArguments(const ConvolutionParam& par
   }
 }
 
+// 是否使用MKL-DNN，服务器编译没有使用，这部分跳过
 #if MXNET_USE_MKLDNN == 1
 static void ConvolutionComputeExCPU(const nnvm::NodeAttrs& attrs,
                                     const OpContext& ctx,
@@ -321,11 +326,12 @@ inline static bool BackwardConvStorageType(const nnvm::NodeAttrs& attrs,
                            out_attrs);
 }
 #endif
-
+// 解析attrs->dict,保存于attrs->parsed
 void ConvolutionParamParser(nnvm::NodeAttrs* attrs) {
   using namespace mshadow;
   ConvolutionParam param_;
   try {
+    // 根据 attrs 初始化param_
     param_.Init(attrs->dict);
   } catch (const dmlc::ParamError& e) {
     std::ostringstream os;
@@ -339,17 +345,17 @@ void ConvolutionParamParser(nnvm::NodeAttrs* attrs) {
     throw dmlc::ParamError(os.str());
   }
 
-  if (param_.kernel.ndim() == 1) {
+  if (param_.kernel.ndim() == 1) {// 1d
     param_.layout = param_.layout? param_.layout.value() : mshadow::kNCW;
     if (param_.stride.ndim() == 0) param_.stride = Shape1(1);
     if (param_.dilate.ndim() == 0) param_.dilate = Shape1(1);
     if (param_.pad.ndim() == 0) param_.pad = Shape1(0);
-  } else if (param_.kernel.ndim() == 2) {
+  } else if (param_.kernel.ndim() == 2) {// 2d
     param_.layout = param_.layout ? param_.layout.value() : mshadow::kNCHW;
     if (param_.stride.ndim() == 0) param_.stride = Shape2(1, 1);
     if (param_.dilate.ndim() == 0) param_.dilate = Shape2(1, 1);
     if (param_.pad.ndim() == 0) param_.pad = Shape2(0, 0);
-  } else {
+  } else {//3d
     CHECK_EQ(param_.kernel.ndim(), 3U) << param_.kernel.ndim() << "D convolution not supported";
     param_.layout = param_.layout ? param_.layout.value(): mshadow::kNCDHW;
     if (param_.stride.ndim() == 0) param_.stride = Shape3(1, 1, 1);
@@ -460,10 +466,10 @@ There are other options to tune the performance.
 
 )code" ADD_FILELINE)
 .set_num_inputs([](const NodeAttrs& attrs) {
-  const ConvolutionParam& params = nnvm::get<ConvolutionParam>(attrs.parsed);
-  return params.no_bias ? 2 : 3;
+  const ConvolutionParam& params = nnvm::get<ConvolutionParam>(attrs.parsed);//获取到attrs.parsed的参数
+  return params.no_bias ? 2 : 3;// 输入,没有bias是2,有是3
 })
-.set_num_outputs(1)
+.set_num_outputs(1)// 输出
 .set_attr_parser(ConvolutionParamParser)
 .set_attr<nnvm::FListInputNames>("FListInputNames",
     [](const NodeAttrs& attrs) {
@@ -494,6 +500,7 @@ There are other options to tune the performance.
 .add_argument("data", "NDArray-or-Symbol", "Input data to the ConvolutionOp.")
 .add_argument("weight", "NDArray-or-Symbol", "Weight matrix.")
 .add_argument("bias", "NDArray-or-Symbol", "Bias parameter.")
+.add_argument("compute", "NDArray-or-Symbol", "compute parameter.")//!herewj 这个好像没什么用
 .add_arguments(ConvolutionParam::__FIELDS__());
 
 NNVM_REGISTER_OP(_backward_Convolution)

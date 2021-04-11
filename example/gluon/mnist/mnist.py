@@ -26,6 +26,7 @@ import numpy as np
 import mxnet as mx
 from mxnet import gluon, autograd
 from mxnet.gluon import nn
+from time import time
 
 # Parse CLI arguments
 
@@ -93,6 +94,7 @@ def train(epochs, ctx):
         # reset data iterator and metric at begining of epoch.
         metric.reset()
         for i, (data, label) in enumerate(train_data):
+            s_time = time()
             # Copy data to ctx if necessary
             data = data.as_in_context(ctx)
             label = label.as_in_context(ctx)
@@ -107,11 +109,13 @@ def train(epochs, ctx):
             # update metric at last.
             metric.update([label], [output])
 
+            e_time = time()
             if i % opt.log_interval == 0 and i > 0:
                 name, acc = metric.get()
-                print('[Epoch %d Batch %d] Training: %s=%f'%(epoch, i, name, acc))
+                print('[Epoch %d Batch %d] Training: %s=%f time=%f'%(epoch, i, name, acc, (e_time-s_time)*opt.log_interval))
 
         name, acc = metric.get()
+
         print('[Epoch %d] Training: %s=%f'%(epoch, name, acc))
 
         name, val_acc = test(ctx)

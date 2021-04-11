@@ -22,6 +22,7 @@
  * \file convolution-inl.h
  * \brief
  * \ref: https://github.com/Yangqing/caffe/wiki/Convolution-in-Caffe:-a-memo
+ * 文档阅读
  * \author Bing Xu, Jun Wu, Da Zheng
 */
 #ifndef MXNET_OPERATOR_NN_CONVOLUTION_INL_H_
@@ -43,7 +44,8 @@
 #include "../operator_common.h"
 #include "../linalg.h"
 #include "./im2col.h"
-
+//! herewj
+#include <unistd.h>
 
 namespace mxnet {
 namespace op {
@@ -54,7 +56,12 @@ enum ConvolutionOpOutputs {kOut};
 enum ConvolutionOpResource {kTempSpace};
 enum ConvolutionOpCudnnTune {kOff, kLimited, kFastest};
 }
-
+/*
+struct map
+kernal
+cpu gpu
+*/
+// 保存卷积操作所用到的参数，在Forward和Backward借口调用之前传给Operator
 struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
   TShape kernel;
   TShape stride;
@@ -62,8 +69,11 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
   TShape pad;
   uint32_t num_filter;
   uint32_t num_group;
+  // 卷积允许使用的最大内存
   uint64_t workspace;
   bool no_bias;
+  //! herewj 参照no_bias参数修改
+  bool no_compute;
   dmlc::optional<int> cudnn_tune;
   bool cudnn_off;
   dmlc::optional<int> layout;
@@ -87,6 +97,9 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
               "`limited_workspace` strategy is used.");
     DMLC_DECLARE_FIELD(no_bias).set_default(false)
     .describe("Whether to disable bias parameter.");
+    //! herewj
+    DMLC_DECLARE_FIELD(no_compute).set_default(false)
+    .describe("Whether to disable compute.");
     DMLC_DECLARE_FIELD(cudnn_tune)
     .add_enum("off", conv::kOff)
     .add_enum("limited_workspace", conv::kLimited)
@@ -112,6 +125,7 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
   }
 
   bool operator==(const ConvolutionParam& other) const {
+      //! herewj
     return this->kernel == other.kernel &&
            this->stride == other.stride &&
            this->dilate == other.dilate &&
@@ -120,6 +134,7 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
            this->num_group == other.num_group &&
            this->workspace == other.workspace &&
            this->no_bias == other.no_bias &&
+           this->no_compute == other.no_compute &&
            this->cudnn_tune == other.cudnn_tune &&
            this->cudnn_off == other.cudnn_off &&
            this->layout == other.layout;
@@ -146,6 +161,8 @@ struct hash<mxnet::op::ConvolutionParam> {
     ret = dmlc::HashCombine(ret, val.num_group);
     ret = dmlc::HashCombine(ret, val.workspace);
     ret = dmlc::HashCombine(ret, val.no_bias);
+    //! herewj
+    ret = dmlc::HashCombine(ret, val.no_compute);
     ret = dmlc::HashCombine(ret, val.cudnn_tune);
     ret = dmlc::HashCombine(ret, val.cudnn_off);
     ret = dmlc::HashCombine(ret, val.layout);
@@ -157,9 +174,15 @@ struct hash<mxnet::op::ConvolutionParam> {
 namespace mxnet {
 namespace op {
 
+/* 这里应该是卷积的重点
+ * 当你实现一个卷积运算符时，你需要知道核的大小 (kernel size)，步长的大小 (stride size)，
+ * 填充的大小 (padding size)，等等。这些参数应当在 Forward 和 Backward 接口被调用之前
+ * 传给 Operator。你可以定义一个 ConvolutionParam 结构
+*/
 template<typename xpu, typename DType>
 class ConvolutionOp {
  public:
+  // 这里把ConvolutionParam放进去
   void Init(ConvolutionParam p) {
     this->param_ = p;
     // convert MBytes first to Bytes and then to elements.
@@ -174,14 +197,18 @@ class ConvolutionOp {
                const std::vector<TBlob> &in_data,
                const std::vector<OpReqType> &req,
                const std::vector<TBlob> &out_data) {
+    // 具体的矩阵计算可能是在 mshadow
     using namespace mshadow;
     using namespace mshadow::expr;
+    // 检查参数维度 conv::KOut, conv::KData是怎么赋值的?
     CHECK_EQ(req[conv::kOut], kWriteTo);
-    size_t expected = param_.no_bias ? 2 : 3;
+    size_t expected = param_.no_bias ? 2 : 3;// data, weight, bias
     CHECK_EQ(in_data.size(), expected);
     CHECK_EQ(out_data.size(), 1U);
     CHECK_EQ(req[conv::kOut], kWriteTo);
+    // 初始化卷积部分参数
     LayerSetUp(in_data[conv::kData].shape_, out_data[conv::kOut].shape_);
+    // ctx: cpu or gpu
     Stream<xpu>* s = ctx.get_stream<xpu>();
 
     // initialize weight and col_buffer 3D tensors for using gemm
@@ -190,21 +217,23 @@ class ConvolutionOp {
     index_t K = kernel_dim_;
     Tensor<xpu, 3, DType> weight_3d = in_data[conv::kWeight].get_with_shape<xpu, 3, DType>(
       Shape3(group_, M, K), s);
+    // 这里假设output_4d的维度符合要求, 那么只需要将两处的linalg_gemm注释即可
     Tensor<xpu, 4, DType> output_4d = out_data[conv::kOut].get_with_shape<xpu, 4, DType>(
-      Shape4(num_, group_, M, N), s);
+      Shape4(num_, group_, M, N), s);// batch siez, num of group, channels/group, 每个channels的像素数
 
     // no need to allocating memory and reordering in memory
-    if (is_1x1_) {
+    if (is_1x1_) {// 1*1卷积输出大小不变, 因此也不需要重新分配内存
       Tensor<xpu, 4, DType> input_4d = in_data[conv::kData].get_with_shape<xpu, 4, DType>(
         Shape4(num_, group_, K, N), s);
-      for (index_t n = 0; n < num_; ++n) {
-        Tensor<xpu, 3, DType> input_3d = input_4d[n];
-        Tensor<xpu, 3, DType> output_3d = output_4d[n];
-        for (index_t g = 0; g < group_; ++g) {
+      for (index_t n = 0; n < num_; ++n) {// 对每个batch操作
+        Tensor<xpu, 3, DType> input_3d = input_4d[n];// 得到当前batch
+        Tensor<xpu, 3, DType> output_3d = output_4d[n];// 当前输出
+        for (index_t g = 0; g < group_; ++g) {// group 默认为1
+          // 这里直接注释掉
           linalg_gemm(weight_3d[g], input_3d[g], output_3d[g], false, false, s, req[conv::kOut]);
         }
       }
-    } else {
+    } else {// 使用im2col, 为col_buffer分配空间
       // allocate workspace for col_buffer
       Tensor<xpu, 1, DType> workspace = ctx.requested[conv::kTempSpace]
         .get_space_typed<xpu, 1, DType>(Shape1(col_buffer_size_), s);
@@ -218,7 +247,7 @@ class ConvolutionOp {
       TBlob col_buffer(workspace.dptr_, col_buffer_shape, xpu::kDevMask, DataType<DType>::kFlag);
       Tensor<xpu, 3, DType> col_buffer_3d = col_buffer.get_with_shape<xpu, 3, DType>(
         Shape3(group_, K, N), s);
-      for (index_t n = 0; n < num_; ++n) {
+      for (index_t n = 0; n < num_; ++n) {//对每个batch操作
         // transform image to col_buffer in order to use gemm
         im2col(s, in_data[conv::kData].dptr<DType>()+n*input_dim_, in_data[conv::kData].shape_,
                col_buffer.shape_, param_.kernel, param_.pad, param_.stride, param_.dilate,
@@ -227,6 +256,7 @@ class ConvolutionOp {
         for (index_t g = 0; g < group_; ++g) {
           // Legacy approach shown here for comparison:
           //   Assign(output_3d[g], req[conv::kOut], dot(weight_3d[g], col_buffer_3d[g]));
+          // 这里注释掉
           linalg_gemm(weight_3d[g], col_buffer_3d[g], output_3d[g], false, false, s,
             req[conv::kOut]);
         }
@@ -339,6 +369,7 @@ class ConvolutionOp {
   }
 
  private:
+  // 各种参数的初始化, 这里面应该会自动计算出卷积的输出的维度
   void LayerSetUp(const TShape& ishape, const TShape& oshape) {
     channel_axis_ = 1;  // hard code channel axis
     const index_t first_spatial_axis = channel_axis_ + 1;
@@ -350,6 +381,7 @@ class ConvolutionOp {
       if (!is_1x1_) break;
     }
 
+    // 根据param对私有变量进行初始化
     // batch size
     num_ = ishape[0];
     // number of input channels
@@ -373,12 +405,15 @@ class ConvolutionOp {
   }
 
  private:
-  ConvolutionParam param_;
+  ConvolutionParam param_; // 卷积所用到的参数
   index_t channel_axis_;  // channel axis of the input
   index_t channels_;  // number of channels of input image
   index_t num_spatial_axes_;  // number of spatial axes
   index_t num_;  // batch size
-  index_t group_;  // number of groups
+  // num_group : int (non-negative), optional, default=1 Number of group partitions.
+  // number of groups Group Normalization(GN) 则是提出的一种 BN 的替代方法，其是首先将
+  // Channels 划分为多个 groups，再计算每个 group 内的均值和方法，以进行归一化
+  index_t group_;
   index_t conv_out_channels_;  // number of output channels (num_filter)
   index_t conv_out_spatial_dim_;  // number of pixels of output images per channel
   index_t conv_in_channels_;  // number of input channels
@@ -402,9 +437,49 @@ void ConvolutionCompute(const nnvm::NodeAttrs& attrs,
                         const std::vector<TBlob>& outputs) {
   const ConvolutionParam& param = nnvm::get<ConvolutionParam>(attrs.parsed);
   MSHADOW_REAL_TYPE_SWITCH(inputs[conv::kData].type_flag_, DType, {
+    //? 这里存在一个问题，按理说GPU和CPU都会运行这里，但是实际上只有CPU才经过这里
     ConvolutionOp<xpu, DType> op;
-    op.Init(param);
-    op.Forward(ctx, inputs, req, outputs);
+    // herewj
+//    std::cout<<param.no_bias<<std::endl;
+    if(param.no_compute == false){
+//        std::cout<<param.no_bias<<" ";
+        op.Init(param);
+        op.Forward(ctx, inputs, req, outputs);
+    }
+    else{
+        // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
+        //TODO 增加延迟,可以现在k80上测出这一部分时间,然后让它sleep.
+        // 与输入图片的大小,卷积核大小, padding, batch大小有关
+        /*
+         * 当前卷积层的时间:
+         * 卷积时间复杂度: O(M^2*K^2*C_in*C_out)
+         * M: 每个卷积核输入特征图(Feature Map)边长
+         * K: 每个卷积核(Kernel)的边长
+         * C_in: 每个卷积核的通道数，也即输入通道数，也即上一层的输出通道数
+         * C_out: 本卷积层具有的卷积核个数，也即输出通道数
+         * M = (X-K+2*Padding)/Stride+1
+         * M = 输出特征大小?
+         * note: 暂时不考虑Bias
+         */
+        index_t cou = param.num_filter;
+        index_t batch = inputs[conv::kData].shape_[0];
+        index_t ci = inputs[conv::kData].shape_[1];
+        index_t x = inputs[conv::kData].shape_[2];
+        // todo
+        index_t k = param.kernel[0];
+        index_t padding = param.pad[0];
+        index_t stride = param.stride[0];
+        index_t m = (x-k+2*padding)/stride+1;
+        index_t o = m*m*k*k*ci*cou;
+
+        std::cout<<"cout:"<<cou<<"ci:"<<ci<<"batch:"<<batch<<"x:"<<x<<"k:"<<k<<"stride:"<<stride<<" ";
+
+        unsigned int microseconds = 264;
+        usleep(microseconds);
+    }
+//    op.Init(param);
+//    op.Forward(ctx, inputs, req, outputs);
+//    LOG(INFO) << "Test ConvolutionCompute!";
   });
 }
 
@@ -420,8 +495,19 @@ void ConvolutionGradCompute(const nnvm::NodeAttrs& attrs,
 
   MSHADOW_REAL_TYPE_SWITCH(out_grad.type_flag_, DType, {
     ConvolutionOp<xpu, DType> op;
-    op.Init(param);
-    op.Backward(ctx, std::vector<TBlob>{out_grad}, in_data, req, in_grad);
+    // 这里 同上
+    if(param.no_compute == false){
+      std::cout<<param.no_bias<<" ";
+      op.Init(param);
+      op.Backward(ctx, std::vector<TBlob>{out_grad}, in_data, req, in_grad);
+    }
+    else{
+        // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
+        unsigned int microseconds = 536;
+        usleep(microseconds);
+    }
+//    op.Init(param);
+//    op.Backward(ctx, std::vector<TBlob>{out_grad}, in_data, req, in_grad);
   });
 }
 

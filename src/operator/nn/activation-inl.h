@@ -192,6 +192,7 @@ void ActivationCompute(const nnvm::NodeAttrs& attrs,
                        const std::vector<TBlob>& outputs) {
   CHECK_EQ(inputs.size(), 1U);
   CHECK_EQ(outputs.size(), 1U);
+  //! 注释这里
   ActivationComputeImpl<xpu>(attrs, ctx, inputs, req, outputs);
 }
 
@@ -206,6 +207,7 @@ void ActivationGradCompute(const nnvm::NodeAttrs& attrs,
   CHECK_EQ(inputs.size(), activation::GradNumInputs(act_type));
   CHECK_EQ(outputs.size(), 1U);
   CHECK_EQ(req.size(), 1U);
+  //! 注释这里
   ActivationGradComputeImpl<xpu>(attrs, ctx, inputs, req, outputs);
 }
 

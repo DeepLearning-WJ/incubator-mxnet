@@ -57,9 +57,9 @@ INFO:root:iter 4, 0.023193 sec, 11.123614 GB/sec per gpu, error 0.000000
 INFO:root:iter 5, 0.023089 sec, 11.173694 GB/sec per gpu, error 0.000000
 ```
 
-The results are close to the unidirectional bandwidth, which is 13 GB/sec, reported by
-`cuda/samples/1_Utilities/p2pBandwidthLatencyTest`. But our problem is harder
-because we do all-to-all communication.
+The results are close to the unidirectional(单向的) bandwidth, which is 13
+GB/sec, reported by `cuda/samples/1_Utilities/p2pBandwidthLatencyTest`. But our
+problem is harder because we do all-to-all communication.
 
 - Use 8 GPUs, it saturates the single 16x link between GPU 0,1,2,3 and GPU 4,5,6,7.
 

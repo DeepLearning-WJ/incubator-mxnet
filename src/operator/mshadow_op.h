@@ -20,7 +20,7 @@
 /*!
  * Copyright (c) 2015 by Contributors
  * \file mshadow_op.h
- * \brief
+ * \brief 定义运算符和激活函数
  * \author Bing Xu
 */
 #ifndef MXNET_OPERATOR_MSHADOW_OP_H_
@@ -967,6 +967,22 @@ struct nanprod_grad : public mxnet_op::tunable {
   MSHADOW_XINLINE static DType Map(DType a, DType b) {
     return isnan_typed::IsNan(a) ? DType(0) : b / a;
   }
+};
+
+/*! \brief Softplus*/
+// f(x)=ln(1+e^x)
+struct softplus {
+    template<typename DType>
+    MSHADOW_XINLINE static DType Map(DType a) {
+        return DType(log1pf(expf(a)));
+    }
+};
+struct softplus_grad {
+    template<typename DType>
+    MSHADOW_XINLINE static DType Map(DType a) {
+        //return DType(DType(1.0f) / (DType(1.0f) +  expf(-a)));
+        return DType(DType(1.0f) - expf(-a)); // 这个求导求错了！！
+    }
 };
 
 }  // namespace mshadow_op

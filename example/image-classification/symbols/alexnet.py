@@ -28,6 +28,7 @@ def get_symbol(num_classes, dtype='float32', **kwargs):
     if dtype == 'float16':
         input_data = mx.sym.Cast(data=input_data, dtype=np.float16)
     # stage 1
+    # TODO 重新定义
     conv1 = mx.sym.Convolution(name='conv1',
         data=input_data, kernel=(11, 11), stride=(4, 4), num_filter=96)
     relu1 = mx.sym.Activation(data=conv1, act_type="relu")

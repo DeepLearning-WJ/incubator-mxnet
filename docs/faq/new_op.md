@@ -344,7 +344,7 @@ NNVM_REGISTER_OP(abs)
   return std::vector<std::pair<int, int> >{{0, 0}};
 })
 .set_attr<FCompute>("FCompute<cpu>", UnaryCompute<cpu, mshadow_op::abs>)
-.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseIn{"_backward_abs"});              
+.set_attr<nnvm::FGradient>("FGradient", ElemwiseGradUseIn{"_backward_abs"});
 .add_argument("data", "NDArray", "Source input")
 
 NNVM_REGISTER_OP(_backward_abs)

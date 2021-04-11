@@ -16,7 +16,7 @@
 # under the License.
 
 # coding: utf-8
-"""Information about mxnet."""
+"""Information about mxnet. 这里定义了加载库的逻辑"""
 from __future__ import absolute_import
 import os
 import platform

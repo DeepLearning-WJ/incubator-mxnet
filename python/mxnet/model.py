@@ -150,8 +150,10 @@ def _update_params_on_kvstore(param_arrays, grad_arrays, kvstore, param_names):
             continue
         name = param_names[index]
         # push gradient, priority is negative index
+        # jj 线程监听
         kvstore.push(name, grad_list, priority=-index)
         # pull back the weights
+        # jj
         kvstore.pull(name, arg_list, priority=-index)
 
 def _update_params(param_arrays, grad_arrays, updater, num_device,

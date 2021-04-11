@@ -32,6 +32,7 @@
 namespace mxnet {
 namespace op {
 
+// 老版本这里应该是InferShape 确定了 in_shape 和 out_shape
 static bool FullyConnectedShape(const nnvm::NodeAttrs& attrs,
                                 std::vector<TShape> *in_shape,
                                 std::vector<TShape> *out_shape) {
@@ -233,7 +234,7 @@ inline static bool BackwardFCStorageType(const nnvm::NodeAttrs& attrs,
 #endif
   return dispatched;
 }
-
+// 向mxnet内核注册
 DMLC_REGISTER_PARAMETER(FullyConnectedParam);
 
 NNVM_REGISTER_OP(FullyConnected)

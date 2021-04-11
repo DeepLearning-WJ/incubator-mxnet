@@ -407,6 +407,8 @@ void linalg_gemm<gpu, mshadow::half::half_t>(const Tensor<gpu, 2, mshadow::half:
  * \param s the stream to perform the operation
  * \param req the assignment request
  */
+ // (weight_3d[g], col_buffer_3d[g], output_3d[g], false, false, s, req[conv::kOut]);
+// CHECK_EQ(req[conv::kOut], kWriteTo);
 template<typename xpu, typename DType>
 inline void linalg_gemm(const Tensor<xpu, 2, DType>& A,
                         const Tensor<xpu, 2, DType>& B,
@@ -415,13 +417,15 @@ inline void linalg_gemm(const Tensor<xpu, 2, DType>& A,
                         mxnet::OpReqType req) {
   using namespace mxnet;
   switch (req) {
-    case kNullOp:
+    case kNullOp:// 什么不做
       break;
-    case kWriteTo:
-    case kWriteInplace:
+    case kWriteTo:// 把梯度写到。。
+        // 打印下信息看看
+        LOG(INFO) << "linalg_gemm: kWriteTo";
+    case kWriteInplace:// 原地写
       linalg_gemm(A, B, C, DType(1.0), DType(0.0), tA, tB, s);
       break;
-    case kAddTo:
+    case kAddTo:// 和原来的数据相加
       linalg_gemm(A, B, C, DType(1.0), DType(1.0), tA, tB, s);
       break;
     default:

@@ -22,6 +22,16 @@ logging.basicConfig(level=logging.DEBUG)
 from common import find_mxnet, data, fit
 from common.util import download_file
 import mxnet as mx
+from mxnet import profiler
+
+profiler.set_config(profile_all=False,
+                    profile_symbolic=True,
+                    profile_imperative=True,
+                    profile_memory=False,
+                    profile_api=False,
+                    aggregate_stats=True,
+                    continuous_dump=True,
+                    filename='profile_cifar10.json')
 
 def download_cifar10():
     data_dir="data"
@@ -61,7 +71,7 @@ if __name__ == '__main__':
         pad_size       = 4,
         # train
         batch_size     = 128,
-        num_epochs     = 300,
+        num_epochs     = 1,
         lr             = .05,
         lr_step_epochs = '200,250',
     )
@@ -72,5 +82,27 @@ if __name__ == '__main__':
     net = import_module('symbols.'+args.network)
     sym = net.get_symbol(**vars(args))
 
+    # 将信息保存到文件中
+    # logger = logging.getLogger()
+    # logger.setLevel(logging.INFO)
+    # stream_handler = logging.StreamHandler()
+    # logger.addHandler(stream_handler)
+    # file_handler = logging.FileHandler('output/imaginnetest11-7.log')
+    # logger.addHandler(file_handler)
+    # logger.info(args)
+
+    # Ask the profiler to start recording
+    profiler.set_state('run')
+
     # train
     fit.fit(args, sym, data.get_rec_iter)
+
+
+    # Make sure all operations have completed
+    mx.nd.waitall()
+    # Ask the profiler to stop recording
+    profiler.set_state('stop')
+    # Dump all results to log file before download
+    # profiler.dump(finished=False)# 浏览器查看
+    # 在终端打印
+    print(profiler.dumps())

@@ -271,6 +271,7 @@ void PoolingCompute(const nnvm::NodeAttrs& attrs,
         || pool_enum::kSumPooling == param.pool_type
         || pool_enum::kLpPooling == param.pool_type) {
       PoolingOp<xpu, DType> op;
+      //! 前向传播
       op.Init(param);
       op.Forward(ctx, inputs[0], req[0], outputs[0]);
     } else {
@@ -311,6 +312,7 @@ void PoolingGradCompute(const nnvm::NodeAttrs& attrs,
         || pool_enum::kSumPooling == param.pool_type
         || pool_enum::kLpPooling == param.pool_type) {
       PoolingOp<xpu, DType> op;
+      //! 反向传播
       op.Init(param);
       op.Backward(ctx, inputs[ograd_idx], inputs[in_data_idx],
                   inputs[out_data_idx], req[0], outputs[0]);

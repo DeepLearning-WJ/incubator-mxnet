@@ -17,7 +17,7 @@
 
 import os, sys
 curr_path = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(curr_path, "../../python"))
+# sys.path.insert(0, os.path.join(curr_path, "../../python"))
 sys.path.insert(0, os.path.join(curr_path, "../../example/image-classification/symbols"))
 import mxnet as mx
 import logging
@@ -35,7 +35,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="command for benchmark kv-store")
     parser.add_argument('--network', type=str, default="resnet",
                         help='the neural network to test')
-    parser.add_argument('--gpus', type=str, default='0,1',
+    parser.add_argument('--gpus', type=str, default='0',
                         help='the gpus to be used, e.g "0,1,2,3"')
     parser.add_argument('--num-layers', type=int, default=152,
                         help='number of layers, can be used for resnet')
@@ -90,7 +90,9 @@ def run(network, optimizer, gpus, kv_store, image_shape, disp_batches,
     # create network
     symbol = import_module(network).get_symbol(image_shape=image_shape, **kwargs)
     # a fake batch size 32, which does not affect the results
+    # (32, 3, 224, 224)
     data_shape = (32,) + tuple([int(s) for s in image_shape.split(',')])
+    # 得到网络中每一层的shape
     shapes = get_shapes(symbol, data_shape)
 
     size = float(sum([reduce(lambda x,y : x*y, s, 1) for s in shapes])) * 4 / 1e6
@@ -99,6 +101,7 @@ def run(network, optimizer, gpus, kv_store, image_shape, disp_batches,
     for i, s in enumerate(shapes):
         kv.init(i, mx.nd.zeros(s))
 
+    # 假的梯度和权重数据
     grads_val = [[mx.random.uniform(-1,1,shape=s) for d in devs] for s in shapes]
     grads = [[g.as_in_context(d) for g, d in zip(gs, devs)] for gs in grads_val]
     weights = [[mx.nd.zeros(s, d) for d in devs] for s in shapes]

@@ -63,6 +63,7 @@ enum OpReqType {
  *  We use this data structure to bookkeep everything needed by Forward and Backward.
  * \sa Resource
  */
+ // 在训练阶段还是测试阶段，它应该运行在哪个设备上（run_ctx）
 struct OpContext {
   /*! \brief whether there is a backward phase to compute gradients. */
   bool need_grad;
@@ -123,7 +124,7 @@ enum class DispatchMode {
 };
 
 /*!
- * \brief Operator state. This is a pointer type, its content is mutable
+ * \brief Operator state. This is a pointer type, its content is mutable(可变的)
  *  even if OpStatePtr is const.
  */
 class OpStatePtr {
@@ -254,7 +255,7 @@ using FNDArrayFunction = std::function<void (const nnvm::NodeAttrs& attrs,
                                              const std::vector<NDArray>& inputs,
                                              std::vector<NDArray>* outputs)>;
 /*!
- * \brief Resiger a compute function for simple stateless forward only operator
+ * \brief Resiger a compute function for simple stateless(无状态) forward only operator
  *
  * \note Register under "FCompute<cpu>" and "FCompute<gpu>"
  */

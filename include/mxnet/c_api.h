@@ -1215,6 +1215,7 @@ MXNET_DLL int MXSymbolGetAtomicSymbolInfo(AtomicSymbolCreator creator,
  * \param out pointer to the created symbol handle
  * \return 0 when success, -1 when failure happens
  */
+ // 创建Symbol
 MXNET_DLL int MXSymbolCreateAtomicSymbol(AtomicSymbolCreator creator,
                                          mx_uint num_param,
                                          const char **keys,
@@ -1226,6 +1227,7 @@ MXNET_DLL int MXSymbolCreateAtomicSymbol(AtomicSymbolCreator creator,
  * \param out pointer to the created symbol handle
  * \return 0 when success, -1 when failure happens
  */
+ // 创建一个变量符号
 MXNET_DLL int MXSymbolCreateVariable(const char *name, SymbolHandle *out);
 /*!
  * \brief Create a Symbol by grouping list of symbols together
@@ -1427,6 +1429,7 @@ MXNET_DLL int MXSymbolListAuxiliaryStates(SymbolHandle symbol,
  * \param args arguments to sym
  * \return 0 when success, -1 when failure happens
  */
+ // 将多个Symbol拼接在一起
 MXNET_DLL int MXSymbolCompose(SymbolHandle sym,
                               const char *name,
                               mx_uint num_args,

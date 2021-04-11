@@ -158,6 +158,7 @@ inline bool ElemwiseAttr(const nnvm::NodeAttrs& attrs,
   return true;
 }
 
+// mxnet 提供的用来检查shape的函数
 template<int n_in, int n_out>
 inline bool ElemwiseShape(const nnvm::NodeAttrs& attrs,
                           std::vector<TShape> *in_attrs,

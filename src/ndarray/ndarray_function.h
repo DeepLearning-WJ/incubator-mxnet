@@ -66,6 +66,7 @@ struct Mod : public BinaryBase {
   typedef op::mshadow_op::mod mshadow_op;
 };
 
+// 删除较小值
 struct ClipMin : public BinaryBase {
   struct mshadow_op {
     template<typename DType>
@@ -79,6 +80,7 @@ struct ClipMin : public BinaryBase {
   };
 };
 
+// 删除较大值
 struct ClipMax : public BinaryBase {
   struct mshadow_op {
     template<typename DType>

@@ -25,7 +25,9 @@ from mxnet import autograd, gluon, kv, nd
 from mxnet.gluon.model_zoo import vision
 
 import numpy as np
-
+'''
+感觉这个代码和image-classification不同，训练过程没有调用fit
+'''
 # Create a distributed key-value store
 store = kv.create('dist')
 
@@ -130,11 +132,14 @@ loss = gluon.loss.SoftmaxCrossEntropyLoss()
 # Run one forward and backward pass on multiple GPUs
 def forward_backward(net, data, label):
 
+    #TODO##############################
     # Ask autograd to remember the forward pass
     with autograd.record():
         # Compute the loss on all GPUs
+        # net(X)代表网络计算得到的预测值，net(X)是真的计算过程
         losses = [loss(net(X), Y) for X, Y in zip(data, label)]
 
+    #TODO##############################
     # Run the backward pass (calculate gradients) on all GPUs
     for l in losses:
         l.backward()
@@ -172,5 +177,6 @@ for epoch in range(epochs):
     # Print test accuracy after every epoch
     test_accuracy = evaluate_accuracy(test_data, net)
     print("Epoch %d: Test_acc %f" % (epoch, test_accuracy))
+    # 这一行的作用
     sys.stdout.flush()
 

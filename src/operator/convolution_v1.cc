@@ -56,6 +56,7 @@ Operator *ConvolutionV1Prop::CreateOperatorEx(Context ctx,
   DO_BIND_DISPATCH(CreateOp, param_, (*in_type)[0], in_shape, &out_shape, ctx);
 }
 
+// 注册，值得注意的是Convolution没有使用该宏进行注册
 MXNET_REGISTER_OP_PROPERTY(Convolution_v1, ConvolutionV1Prop)
 .add_argument("data", "NDArray-or-Symbol", "Input data to the ConvolutionV1Op.")
 .add_argument("weight", "NDArray-or-Symbol", "Weight matrix.")

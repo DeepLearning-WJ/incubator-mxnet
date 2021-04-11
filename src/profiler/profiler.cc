@@ -98,7 +98,7 @@ Profiler::~Profiler() {
 }
 
 Profiler* Profiler::Get(std::shared_ptr<Profiler> *sp) {
-  static std::mutex mtx;
+  static std::mutex mtx;// 互斥锁
   static std::shared_ptr<Profiler> prof = nullptr;
   if (!prof) {
     std::unique_lock<std::mutex> lk(mtx);
