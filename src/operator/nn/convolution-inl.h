@@ -429,11 +429,17 @@ void ConvolutionCompute(const nnvm::NodeAttrs& attrs,
     else{
         // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
 		useconds_t time = param.sleep_time;
-		LOG(INFO) << "sleep time: ";
+		LOG(INFO) << "Forward sleep time: ";
 		LOG(INFO) << time;
         // unsigned int microseconds = 30000;
         // usleep(microseconds);
         usleep(time);
+		// above method may have some trouble, such as, block all the thread
+		// https://stackoverflow.com/questions/4184468/sleep-for-milliseconds
+		// http://www.cplusplus.com/reference/thread/this_thread/sleep_for/
+		// #include <chrono>
+		// #include <thread>
+		// std::this_thread::sleep_for(std::chrono::milliseconds(x)); // microseconds
     }
 
    //op.Init(param);
@@ -461,8 +467,12 @@ void ConvolutionGradCompute(const nnvm::NodeAttrs& attrs,
     }
     else{
         // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
-        unsigned int microseconds = 536;
-        usleep(microseconds);
+		useconds_t time = 2 * param.sleep_time;
+		LOG(INFO) << "Backward sleep time: ";
+		LOG(INFO) << time;
+        // unsigned int microseconds = 30000;
+        // usleep(microseconds);
+        usleep(time);
     }
 
 
