@@ -40,7 +40,7 @@ void FullyConnectedCompute<gpu>(const nnvm::NodeAttrs& attrs,
 
   MSHADOW_REAL_TYPE_SWITCH(dtype, DType, {
       //! 前向传播
-    FCForward<gpu, DType>(ctx, param, inputs, req, outputs);
+   FCForward<gpu, DType>(ctx, param, inputs, req, outputs);
   });
 }
 

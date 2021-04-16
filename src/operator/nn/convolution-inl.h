@@ -68,7 +68,7 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
   bool no_bias;
   //! herewj
   bool no_compute;
-  useconds_t sleep_time;
+  uint64_t sleep_time;
   dmlc::optional<int> cudnn_tune;
   bool cudnn_off;
   dmlc::optional<int> layout;
@@ -95,7 +95,7 @@ struct ConvolutionParam : public dmlc::Parameter<ConvolutionParam> {
     //! herewj
     DMLC_DECLARE_FIELD(no_compute).set_default(false)
     .describe("Whether to disable compute.");
-    DMLC_DECLARE_FIELD(sleep_time).set_range(0, 100000)
+    DMLC_DECLARE_FIELD(sleep_time).set_default(0).set_range(0, 100000)
     .describe("When no_compute is true, the sleeping time");
     DMLC_DECLARE_FIELD(cudnn_tune)
     .add_enum("off", conv::kOff)
@@ -409,6 +409,8 @@ class ConvolutionOp {
   index_t num_kernels_col2im_;
   bool bias_term_;  // has bias term?
   bool is_1x1_;
+  // Here we don't need initialize 'sleep' and 'compute'. Because ConvolutionOp
+  // is used for real Forward and Backward.
 };  // class ConvolutionOp
 
 template<typename xpu>
@@ -419,18 +421,18 @@ void ConvolutionCompute(const nnvm::NodeAttrs& attrs,
   const ConvolutionParam& param = nnvm::get<ConvolutionParam>(attrs.parsed);
   MSHADOW_REAL_TYPE_SWITCH(inputs[conv::kData].type_flag_, DType, {
     ConvolutionOp<xpu, DType> op;
-// herewj
-    //std::cout<<param.no_bias<<std::endl;
-    if(param.no_compute == false){
-        //std::cout<<param.no_bias<<" ";
+	// herewj
+	LOG(INFO) << "1. Forward sleep time: ";
+    if(param.no_compute == false) {
         op.Init(param);
         op.Forward(ctx, inputs, req, outputs);
+		LOG(INFO) << "2. Forward sleep time: ";
     }
-    else{
+    else {
         // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
 		useconds_t time = param.sleep_time;
-		LOG(INFO) << "Forward sleep time: ";
-		LOG(INFO) << time;
+		LOG(INFO) << "3. Forward sleep time: ";
+		// LOG(INFO) << time;
         // unsigned int microseconds = 30000;
         // usleep(microseconds);
         usleep(time);
@@ -460,16 +462,17 @@ void ConvolutionGradCompute(const nnvm::NodeAttrs& attrs,
 
   MSHADOW_REAL_TYPE_SWITCH(out_grad.type_flag_, DType, {
     ConvolutionOp<xpu, DType> op;
-    if(param.no_compute == false){
-      //std::cout<<param.no_bias<<" ";
+	LOG(INFO) << "1. Backward sleep time: ";
+    if(param.no_compute == false) {
+	  LOG(INFO) << "2. Backward sleep time: ";
       op.Init(param);
       op.Backward(ctx, std::vector<TBlob>{out_grad}, in_data, req, in_grad);
     }
-    else{
+    else {
         // https://pubs.opengroup.org/onlinepubs/007908799/xsh/usleep.html
 		useconds_t time = 2 * param.sleep_time;
-		LOG(INFO) << "Backward sleep time: ";
-		LOG(INFO) << time;
+		LOG(INFO) << "3. Backward sleep time: ";
+		// LOG(INFO) << time;
         // unsigned int microseconds = 30000;
         // usleep(microseconds);
         usleep(time);
