@@ -159,12 +159,14 @@ void ConvolutionCompute<gpu>(const nnvm::NodeAttrs& attrs,
       CuDNNConvolutionOp<DType> &op = GetCuDNNConvOp<DType>(param,
           compute_type, compute_type, in_shape, out_shape, ctx.run_ctx, add_to_weight);
       // herewj
-      LOG(INFO) << "CuDNN Forward";
       if(param.no_compute == false) {
+        LOG(INFO) << "CuDNN Forward no_compute = false";
         op.Forward(ctx, inputs, req, outputs);
       } else {
+        LOG(INFO) << "CuDNN Forward no_compute = true";
         useconds_t time = param.sleep_time;
-        LOG(INFO) << time;
+        // LOG(INFO) << param.sleep_time;
+        // LOG(INFO) << time;
         usleep(time);
       }
     }
@@ -250,12 +252,15 @@ void ConvolutionGradCompute<gpu>(const nnvm::NodeAttrs& attrs,
       auto add_to_weight = req[conv::kWeight] == kAddTo;
       CuDNNConvolutionOp<DType> &op = GetCuDNNConvOp<DType>(param,
           compute_type, compute_type, in_shape, out_shape, ctx.run_ctx, add_to_weight);
-      LOG(INFO) << "CuDNN Backward";
+      // herewj
       if(param.no_compute == false) {
+        LOG(INFO) << "CuDNN Backward no_compute = false";
         op.Backward(ctx, std::vector<TBlob>{out_grad}, in_data, req, in_grad);
       } else {
+        LOG(INFO) << "CuDNN Backward no_compute = true";
         useconds_t time = param.sleep_time;
-        LOG(INFO) << time;
+        // LOG(INFO) << param.sleep_time;
+        // LOG(INFO) << time;
         usleep(time);
       }
       
